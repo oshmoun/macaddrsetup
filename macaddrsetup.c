@@ -12,6 +12,7 @@
 #include <cutils/log.h>
 
 #define BT_MAC_FILE "/data/etc/bluetooth_bdaddr"
+#define WIFI_MAC_FILE "/data/etc/wifi_bdaddr"
 
 extern const char *__progname;
 extern int ta_open(uint8_t p, uint8_t m, uint8_t c);
@@ -73,38 +74,37 @@ int main(int argc, char **argv)
 	chown(BT_MAC_FILE, AID_BLUETOOTH, AID_BLUETOOTH);
 	chmod(BT_MAC_FILE, S_IRUSR | S_IWUSR | S_IRGRP); // 640
 
-	if (argc > 1) {
-		fpw = fopen(argv[1], "w");
-		if (!fpw) {
-			SLOGE("failed to open %s for writing: %s\n", argv[1], strerror(errno));
-			ta_close();
-			exit(1);
-		}
-
-		err = ta_getsize(wl_addr, &size);
-		if (size != 6) {
-			SLOGE("mac address have wrong size (%d) in miscta", size);
-			ta_close();
-			fclose(fpw);
-			exit(1);
-		}
-
-		err = ta_read(wl_addr, buf, size);
-		if (err) {
-			SLOGE("failed to read mac address from miscta");
-			ta_close();
-			fclose(fpw);
-			exit(1);
-		}
-
-		ret = fprintf(fpw, "%02x:%02x:%02x:%02x:%02x:%02x\n", buf[5], buf[4], buf[3], buf[2], buf[1], buf[0]);
-		if (ret != 18) {
-			SLOGE("failed to write WLAN mac address\n");
-			ta_close();
-			fclose(fpw);
-			exit(1);
-		}
+	fpw = fopen(WIFI_MAC_FILE, "w");
+	if (!fpw) {
+		SLOGE("failed to open %s for writing: %s\n", WIFI_MAC_FILE, strerror(errno));
+		ta_close();
+		exit(1);
 	}
+
+	err = ta_getsize(wl_addr, &size);
+	if (size != 6) {
+		SLOGE("mac address have wrong size (%d) in miscta", size);
+		ta_close();
+		fclose(fpw);
+		exit(1);
+	}
+
+	err = ta_read(wl_addr, buf, size);
+	if (err) {
+		SLOGE("failed to read mac address from miscta");
+		ta_close();
+		fclose(fpw);
+		exit(1);
+	}
+
+	ret = fprintf(fpw, "%02x:%02x:%02x:%02x:%02x:%02x\n", buf[5], buf[4], buf[3], buf[2], buf[1], buf[0]);
+	if (ret != 18) {
+		SLOGE("failed to write WLAN mac address\n");
+		ta_close();
+		fclose(fpw);
+		exit(1);
+	}
+
 	ta_close();
 	fclose(fpb);
 	if (fpw)
